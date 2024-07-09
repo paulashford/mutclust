@@ -41,10 +41,11 @@
       
       #library(Biostrings);
       # 27/06/18 new MutClust git directory
-      setwd( '~/woofgit/mutclust' );
-      source( 'r/MutClust_analysis_functions.R' );
-      source( 'r/struct_clust_util.R' );
-      source( 'r/struct_clust_load_data.R' );
+      # 18 06 2024 removed hard-code dir and use of r/ subfolder
+      # setwd( '~/woofgit/mutclust' );
+      source( 'MutClust_analysis_functions.R' );
+      source( 'struct_clust_util.R' );
+      source( 'struct_clust_load_data.R' );
       #source( '/Users/ash/woofgit/tracerx/neofun/script/R/neofun_util.R' );
 
       # Where all MutClust RData files are...

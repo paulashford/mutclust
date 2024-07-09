@@ -1,5 +1,6 @@
 -- mutclust_mgmt.sql  
 -- 09/10/2019      
+-- 12 06 2024: include AlphaFold version in §2d
 
 -----------------------------------------------------------------------------------------------------------
 -- Oracle SQL views (for running MutClust)
@@ -58,6 +59,8 @@
             -- TRUE	Silent	99095
             -- FALSE	Missense_Mutation	245098
             -- FALSE	Silent	30
+            
+            -- NOTE: AlphaFold version section (d)
     -----------------------------------------------------------------------------------------------------------
         -- (a) Create VIEW vw_mutclust_mgmt_missense
             DROP VIEW funvar_tx.vw_mutclust_mgmt_missense;
@@ -199,6 +202,67 @@
             mis.funfam_number =  silent.funfam_number
             AND 
             mis.rep_id = silent.rep_id;
+
+        -- (d) AlphaFold version of (a)
+        -- 12 06 2024
+            CREATE OR REPLACE VIEW funvar_tx.vw_mutclust_mgmt_af_pre 
+            AS
+              SELECT 
+                ROW_NUMBER( ) OVER( ORDER BY MFC_MUT_COUNT_MISSENSE DESC ) TASKID_rownum,
+				-1 TASKID,
+                superfamily_id,
+                funfam_number,
+                ef,
+                gene,
+                fun_up,
+                rep_id,
+                cath_rep_or_uniprot uniprot_acc,
+				-- SUBSTR(rep_id, 1, INSTR( rep_id, '_' ) -1 ) up,
+				REPLACE( SUBSTR(rep_id, INSTR( rep_id, '_' ) +1 ), '_', '-') up_aa_range ,
+                -- make rep_id the "PDB_CODE" for AF data
+				-- pdb_code,
+				rep_id pdb_code,
+                chain_code,
+                num_swissprot_in_ff,
+                MFC_MUT_COUNT_MISSENSE MFC_MUT_COUNT,
+				-- MutClust cluster job params
+				5 		MIN_RAD,
+				5 		MAX_RAD,
+				10000	NO_TRIALS
+            FROM
+                (   SELECT
+                        superfamily_id,
+                        funfam_number,
+                        99 ef,
+                        '<gene>' gene,
+                        '<uniprot>' fun_up,
+                        rep_id,
+                        cath_rep_or_uniprot,
+                        pdb_code,
+                        chain_code,
+                        num_swissprot_in_ff,
+                        SUM( mfc_mut_count_residue ) MFC_MUT_COUNT_MISSENSE                
+                    FROM
+                        funvar_tx.vw_mutclust_dat_af
+                    WHERE 
+                        data_source = 'TCGA'
+                        AND vm_synonymous = 'FALSE'
+                        AND variant_class = 'Missense_Mutation'
+						AND rep_source_id = 'uniprot'
+                    GROUP BY
+                        superfamily_id,
+                        funfam_number,
+                        99,
+                        '<gene>',
+                        '<uniprot>',
+                        rep_id,
+                        cath_rep_or_uniprot,
+                        pdb_code,
+                        chain_code,
+                        num_swissprot_in_ff
+                    HAVING COUNT( * ) > 1      
+                    ORDER BY COUNT( * ) DESC
+                );
 
     -------------------------------------------------------------------------
     -- [3] MUTCLUST MGMT files (missense and silent) 
